@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      # Log in to Amazon ECR
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin N.dkr.ecr.us-east-1.amazonaws.com
+
+  build:
+    commands:
+      # Pull the vikunja/api Docker image
+      - docker pull vikunja/api
+
+      # Tag the Docker image
+      - docker tag vikunja/api:latest N.dkr.ecr.us-east-1.amazonaws.com/vikunja:latest
+
+  post_build:
+    commands:
+      # Push the Docker image to Amazon ECR
+      - docker push N.dkr.ecr.us-east-1.amazonaws.com/vikunja:latest
