@@ -1,0 +1,309 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create VPC with public and private subnets
+
+Parameters:
+# VPC
+  VPCCIDR:
+    Type: String
+    Default: "10.0.0.0/16"
+    Description: CIDR block for the VPC
+  PublicSubnetCIDR:
+    Type: String
+    Default: "10.0.1.0/24"
+    Description: CIDR block for the public subnet 1
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: "10.0.2.0/24"
+    Description: CIDR block for the private subnet 1
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: "10.0.3.0/24"
+    Description: CIDR block for the private subnet 2
+
+  
+  #Security group
+  EC2SecurityGroup:
+    Description: The EC2 security group that contains instances that need access to
+      the database
+    Default: default
+    Type: String
+
+
+Resources:
+  # VPC
+  VikunjaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Project
+          Value: Vijunka
+  # Subnets
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VikunjaVPC
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VikunjaVPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VikunjaVPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+  # Internet Gateway & Route Tables
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Project
+          Value: Vijunka
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VikunjaVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VikunjaVPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  AssociatePublicSubnetWithRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+# S3
+  VikunjaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: vikunja-emumba-project
+      WebsiteConfiguration:
+        IndexDocument: index.html
+# ECR
+
+  VikunjaECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: vikunja
+
+  # Security Group
+  ECSSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow ECS & Load Balancer to client host
+      VpcId: !Ref VikunjaVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+
+  # Load Balancer >> Used Network Load Balancer by AWS Console
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: 
+        - subnet-0c502e570af93aec7
+        - subnet-0c51ace70414a022c
+      SecurityGroups:
+        - !Ref ECSSecurityGroup
+      Scheme: internet-facing
+      Type: application
+  # Target Groups   
+  ALBTargetGroupBlue:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /
+      HealthCheckPort: '80'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      UnhealthyThresholdCount: 4
+      VpcId: !Ref VikunjaVPC
+  ALBTargetGroupGreen:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /
+      HealthCheckPort: '80'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      UnhealthyThresholdCount: 4
+      VpcId: !Ref VikunjaVPC
+  # Load Balancer Listener
+  ALBListenerProdTraffic:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref ALBTargetGroupBlue
+                Weight: 1
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  ALBListenerProdRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref ALBTargetGroupBlue
+                Weight: 1
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig:
+            HttpHeaderName: User-Agent
+            Values:
+              - Mozilla
+      ListenerArn: !Ref ALBListenerProdTraffic
+      Priority: 1
+
+
+
+  # CodeCommit
+  CodeCommit:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: vikunja
+      RepositoryDescription: vikunja repo.
+
+  #CodeGuru
+  CodeGuru:
+    Type: AWS::CodeGuruReviewer::RepositoryAssociation
+    Properties:
+      Name: vikunja
+      Type: CodeCommit 
+
+  # CodeBuild
+  codebuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: vikunja
+      Description: vikunja project
+      ServiceRole: "arn:aws:iam::N:role/codeBuild"
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Type: LINUX_CONTAINER
+      Source:
+        Type: CODECOMMIT
+        Location: vikunja
+        GitCloneDepth: 1
+        BuildSpec: buildspec.yml
+      TimeoutInMinutes: 15
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codecommit:GitPull
+                Resource: 
+                  - "arn:aws:codecommit:us-east-1:N:vikunja"
+
+
+  # ECS
+  VikunjaCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: vikunja-app
+ 
+  BlueTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: vikunja-task
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 1GB
+      ExecutionRoleArn: 'arn:aws:iam::N:role/ecsTaskExecutionRole'
+      ContainerDefinitions:
+        - Name: vikunja
+          Image: N.dkr.ecr.us-east-1.amazonaws.com/vikunja:latest
+          PortMappings:
+            - ContainerPort: 3456
+              Protocol: tcp
+              appProtocol: http
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-create-group: "true"
+              awslogs-group: "/ecs/test2"
+              awslogs-region: "us-east-1"
+              awslogs-stream-prefix: "ecs"
+
+# Done by AWS console:
+  # CodeDeploy - to ECS (Backend) & S3 (FrontEnd)
+  # CodePipeline
+
+
+
+
