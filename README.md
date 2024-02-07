@@ -22,5 +22,3 @@ http://vikunja-emumba-project.s3-website-us-east-1.amazonaws.com/
 8. I created CodeDeploy distribution that uses appspec to deploy the ecr's container to the ecs service, while using a second pipeline, I combined the codedeploy and codebuild's steps together.
 
 9. The two of the subnets are set to public, as - according to my knowledge and search - the load balancer does not connect with private subnets from a face-internet ELB - by default.
-
-10. According to my knowledge, using the Load balancer for the frontend and routing it to S3 is not possible and has no point as the load balancer would more reasonably get used for an ecs backend and to manage routing between the instances.
