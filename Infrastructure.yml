@@ -234,41 +234,6 @@ Resources:
         BuildSpec: buildspec.yml
       TimeoutInMinutes: 15
 
-  CodeBuildServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      Path: "/"
-      Policies:
-        - PolicyName: CodeBuildPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: arn:aws:logs:*:*:*
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
-                  - s3:PutObject
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - codecommit:GitPull
-                Resource: 
-                  - "arn:aws:codecommit:us-east-1:N:vikunja"
-
-
   # ECS
   VikunjaCluster:
     Type: AWS::ECS::Cluster
