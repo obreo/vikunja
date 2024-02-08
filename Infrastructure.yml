@@ -176,16 +176,7 @@ Resources:
       StorageType: gp2
       PubliclyAccessible: True
       AllocatedStorage: "20"
-      DBSubnetGroupName: !Ref DBSubnetGroup
-
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties: 
-      DBSubnetGroupDescription: description
-      SubnetIds: 
-        - subnet-0c502e570af93aec7
-        - subnet-03f47fd449d9db5fa
-
+      DBSubnetGroupName: "vikunja"
 
   # Load Balancer >> Used Network Load Balancer by AWS Console
   ApplicationLoadBalancer:
