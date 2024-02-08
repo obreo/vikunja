@@ -176,7 +176,7 @@ Resources:
       StorageType: gp2
       PubliclyAccessible: True
       AllocatedStorage: "20"
-      DBSubnetGroupName: "vikunja"
+      DBSubnetGroupName: "vikunja-dbsubnetgroup-oz72bgdsoxt5"
 
   # Load Balancer >> Used Network Load Balancer by AWS Console
   ApplicationLoadBalancer:
