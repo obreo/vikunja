@@ -1,5 +1,5 @@
 # Creating a CodePipeline infrastructure for Vikunja web app using ECS and S3
-![Architecture](vikunja.png)  
+![Architecture](vikunjaa.png)  
 
 ## Link:
 http://vikunja-emumba-project.s3-website-us-east-1.amazonaws.com/
