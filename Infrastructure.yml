@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create VPC with public and private subnets
 
+
+
+
 Parameters:
 # VPC
   VPCCIDR:
@@ -14,12 +17,41 @@ Parameters:
   PrivateSubnet1CIDR:
     Type: String
     Default: "10.0.2.0/24"
-    Description: CIDR block for the private subnet 1
+    Description: CIDR block for the private subnet 1  
   PrivateSubnet2CIDR:
     Type: String
     Default: "10.0.3.0/24"
     Description: CIDR block for the private subnet 2
 
+# RDS
+  OwnerID:
+    Type: String
+    NoEcho: 'true'
+  DBName:
+    Type: String
+    Default: vikunja
+    Description: Name of the RDS database
+  MasterUsername:
+    Type: String
+    NoEcho: 'true'
+  MasterPassword:
+    Type: String
+    NoEcho: 'true'
+  DBInstanceClass:
+    Type: String
+    Default: db.t2.micro
+    Description: Instance class for the RDS database
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: Allocated storage for the RDS database (in GB)
+  DBEngine:
+    Type: String
+    Default: mysql
+    Description: Database engine type
+  EngineVersion:
+    Type: String
+    Default: '5.7'
   
   #Security group
   EC2SecurityGroup:
@@ -122,6 +154,38 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0
 
+  DBEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow RDS to client host
+      VpcId: !Ref VikunjaVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+  # RDS
+  RDSDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref DBName
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterPassword
+      Engine: MySQL
+      DBInstanceClass: db.t2.micro
+      StorageType: gp2
+      PubliclyAccessible: True
+      AllocatedStorage: "20"
+      DBSubnetGroupName: !Ref DBSubnetGroup
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: description
+      SubnetIds: 
+        - subnet-0c502e570af93aec7
+        - subnet-03f47fd449d9db5fa
+
 
   # Load Balancer >> Used Network Load Balancer by AWS Console
   ApplicationLoadBalancer:
@@ -220,7 +284,7 @@ Resources:
     Properties:
       Name: vikunja
       Description: vikunja project
-      ServiceRole: "arn:aws:iam::N:role/codeBuild"
+      ServiceRole: "arn:aws:iam::161805785056:role/codeBuild"
       Artifacts:
         Type: no_artifacts
       Environment:
@@ -233,6 +297,7 @@ Resources:
         GitCloneDepth: 1
         BuildSpec: buildspec.yml
       TimeoutInMinutes: 15
+
 
   # ECS
   VikunjaCluster:
@@ -249,10 +314,10 @@ Resources:
         - FARGATE
       Cpu: 512
       Memory: 1GB
-      ExecutionRoleArn: 'arn:aws:iam::N:role/ecsTaskExecutionRole'
+      ExecutionRoleArn: 'arn:aws:iam::161805785056:role/ecsTaskExecutionRole'
       ContainerDefinitions:
         - Name: vikunja
-          Image: N.dkr.ecr.us-east-1.amazonaws.com/vikunja:latest
+          Image: 161805785056.dkr.ecr.us-east-1.amazonaws.com/vikunja:latest
           PortMappings:
             - ContainerPort: 3456
               Protocol: tcp
