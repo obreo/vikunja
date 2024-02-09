@@ -5,5 +5,5 @@ Resources:
       Properties:
         TaskDefinition: "arn:aws:ecs:us-east-1:N:task-definition/vikunja-task:22"
         LoadBalancerInfo:
-          ContainerName: "SampleApplicationName"
+          ContainerName: "vikunja"
           ContainerPort: 3456
