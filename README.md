@@ -45,9 +45,9 @@ The steps & resources were used are the following:
 
 6. CodeBuild:
    1. CodeBuild is set to run buildspec.yml script that will:
-    1. Pull image, tag it and push it to ECS. - This is hashed by default.
-    2. Build task definition with the environment variables, register it and export it as artifact.
-    3. Build appspec.yml file and export it as artifact.
+       1. Pull image, tag it and push it to ECS. - This is hashed by default.
+       2. Build task definition with the environment variables, register it and export it as artifact.
+       3. Build appspec.yml file and export it as artifact.
    2. A role is set to use the ssm parameters, ECS - to register task definition, custome universal policy for codebuild.
 
 7. Cloudfront:
