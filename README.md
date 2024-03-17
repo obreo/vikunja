@@ -28,15 +28,15 @@ The steps & resources were used are the following:
    Created RDS instance that uses MySQL Engine. It uses security group that allows port 3306 and uses two subnet groups - minimum allowed.
 
 4. ECS:
- 1. Cluster
-    1. ECS uses fargate cluster environment, which has logs enabled with cloudwatch logs. 
- 
- 2. Task definition
-    1. The Task definition uses the vikunja's application environment variables and the RDS credentials as secret variables - that are defined using SSM.
-    2. It's assigned to an execution role that uses `AmazonECSTaskExecutionRolePolicy` - which allows writing logs and using ECR image. RDS access - if not using public access - and SSM access (to access SSM parameters).
-
- 3. Service:
-    1. The service is configured to use the network load balancer, and autoscale from 1 - 4 tasks - using '**app autoscaing target**' & '**app autoscaling policy**' Terraform resources. It's also configured to use blue/green deployment by using `CODE_DEPLOY` attribute, that is defined using the **CodeDeploy** resource.
+    1. Cluster
+       1. ECS uses fargate cluster environment, which has logs enabled with cloudwatch logs. 
+    
+    2. Task definition
+       1. The Task definition uses the vikunja's application environment variables and the RDS credentials as secret variables - that are defined using SSM.
+       2. It's assigned to an execution role that uses `AmazonECSTaskExecutionRolePolicy` - which allows writing logs and using ECR image. RDS access - if not using public access - and SSM access (to access SSM parameters).
+   
+    3. Service:
+       1. The service is configured to use the network load balancer, and autoscale from 1 - 4 tasks - using '**app autoscaing target**' & '**app autoscaling policy**' Terraform resources. It's also configured to use blue/green deployment by using `CODE_DEPLOY` attribute, that is defined using the **CodeDeploy** resource.
 
 5. CodeDeploy:
    1. An Application created and configured, it uses Blue Green and set to use the ECS cluster and service, as it also uses both of the load balancer's blue/green environment target groups.
@@ -51,5 +51,5 @@ The steps & resources were used are the following:
    2. A role is set to use the ssm parameters, ECS - to register task definition, custome universal policy for codebuild.
 
 7. Cloudfront:
-   Cloudfront uses S3 as an endpoint, it supports http and https based on the load balancer's listener port. 
+   * Cloudfront uses S3 as an endpoint, it supports http and https based on the load balancer's listener port. 
 
