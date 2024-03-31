@@ -51,5 +51,4 @@ The steps & resources were used are the following:
    2. A role is set to use the ssm parameters, ECS - to register task definition, custome universal policy for codebuild.
 
 7. Cloudfront:
-   * Cloudfront uses S3 as an endpoint, it supports http and https based on the load balancer's listener port. 
-
+   * Cloudfront uses S3 as an endpoint, it supports http and https based on the load balancer's listener port. However, if HTTPS is used then it is recmmended to use ALB that listens to port 443 - so it terminates the ssl before forwarding it to the target group as ALB is based on layer 7 - and make the target group use port 80 and adjust the vikunja to use the same port. As NLB terminates the ssl cert in layer 4, at the backend of the instances, means the instance needs an ssl cert installed and used for the vikunja while adjusting the app to listen to port 443. A workaround - which is not efficient, is to connect cloudfront of https to the nlb that will be used as a backend endpoint, as cloudfront decrypts ssl before forwarding data.
